@@ -2,6 +2,15 @@ import React, { useState } from "react";
 import { AiFillEyeInvisible, AiFillEye } from "react-icons/ai";
 import { Link } from "react-router-dom";
 import OAuth from "../components/OAuth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { db } from "../firebase";
+import { serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,12 +20,40 @@ const SignUp = () => {
     password: "",
   });
   const { name, email, password } = formData;
+  const navigate = useNavigate();
   function onChange(e) {
     // console.log(e.target.value);
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
+  }
+  async function onSubmit(e) {
+    e.preventDefault();
+
+    try {
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      updateProfile(auth.currentUser, {
+        displayName: name,
+      });
+      const user = userCredential.user;
+      const formDataCopy = { ...formData };
+      delete formDataCopy.password;
+      formDataCopy.timestamp = serverTimestamp();
+
+      await setDoc(doc(db, "users", user.uid), formDataCopy);
+
+      // console.log(user);
+      // toast.success("Sign Up was successfull");
+      // navigate("/");
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
   }
   return (
     <section>
@@ -30,7 +67,7 @@ const SignUp = () => {
           />
         </div>
         <div className="w-full md:w-[67%] lg:w-[40%] lg:ml-20">
-          <form>
+          <form onSubmit={onSubmit}>
             <input
               type="text"
               id="name"
@@ -75,7 +112,7 @@ const SignUp = () => {
                   to="/sign-in"
                   className="text-red-600 hover:text-red-700 transition duration-200 ease-in-out ml-1"
                 >
-                  Sign Up
+                  Sign In
                 </Link>
               </p>
               <p>
@@ -91,7 +128,7 @@ const SignUp = () => {
               className="w-full bg-blue-600 py-3 rounded text-white text-sm font-medium uppercase shadow-md hover:bg-blue-700 transition duration-150 ease-in-out hover:shadow-lg active:bg-blue-800"
               type="submit"
             >
-              Sign In
+              Sign Up
             </button>
             <div
               className="flex items-center my-4 
